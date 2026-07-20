@@ -1,0 +1,99 @@
+# Builds an iOS IPA on GitHub's Mac runners — no local Xcode required.
+# Optional secrets for a signed device IPA:
+#   IOS_P12_BASE64, IOS_P12_PASSWORD, IOS_TEAM_ID
+# Without secrets, uploads an unsigned archive artifact for tooling that resigns.
+
+name: iOS Cloud Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "www/**"
+      - "ios/**"
+      - "capacitor.config.json"
+      - ".github/workflows/ios-cloud-build.yml"
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    defaults:
+      run:
+            steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps + sync Capacitor
+        run: |
+          npm ci || npm install
+          npx cap sync ios
+
+      - name: Pod install
+        working-directory: ios/App
+        run: pod install
+
+      - name: Import signing cert (optional)
+        if: ${{ secrets.IOS_P12_BASE64 != '' }}
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+      - name: Build IPA (signed if cert present)
+        working-directory: ios/App
+        env:
+          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          if [ -n "${TEAM_ID:-}" ]; then
+            xcodebuild -workspace App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -archivePath build/App.xcarchive \
+              DEVELOPMENT_TEAM="$TEAM_ID" \
+              CODE_SIGN_STYLE=Automatic \
+              -allowProvisioningUpdates \
+              archive
+            cat > build/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>development</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>compileBitcode</key><false/>
+          </dict></plist>
+          EOF
+            xcodebuild -exportArchive \
+              -archivePath build/App.xcarchive \
+              -exportPath build/ipa \
+              -exportOptionsPlist build/ExportOptions.plist
+          else
+            # No secrets: simulator .app package (no local Xcode for the developer)
+            xcodebuild -workspace App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -sdk iphonesimulator \
+              -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+            APP_PATH=$(find build/DerivedData -name 'App.app' -type d | head -1)
+            mkdir -p build/ipa
+            ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" build/ipa/SCA_Timer_iOS_Simulator.zip
+          fi
+          ls -la build/ipa || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-timer-ios
+          path: |
+            ios/App/build/ipa/*
+            ios/App/build/App.xcarchive
+          if-no-files-found: warn

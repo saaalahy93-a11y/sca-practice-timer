@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+dist/
+ios/App/Pods/
+android/.gradle/
+android/app/build/
+*.log
+.idea/
+
+android/local.properties
+.deploy-venv/
+SCA_Timer_Android.apk
+*.p12

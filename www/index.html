@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SCA Timer"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0b1220"/>
+<meta name="description" content="MRCGP SCA practice timer — 3 min reading + 12 min consultation with phase alerts"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="icons/icon-180.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+<title>SCA Practice Timer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@700;800&family=IBM+Plex+Mono:wght@600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap');
+
+:root {
+  --paper: #0b1220;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --reading: #38bdf8;
+  --gather: #34d399;
+  --diagnosis: #fbbf24;
+  --manage: #a78bfa;
+  --safety: #fb7185;
+  --close: #f87171;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 90% 55% at 15% -10%, rgba(56,189,248,0.2), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(167,139,250,0.18), transparent 50%),
+    var(--paper);
+}
+
+body { padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom); }
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 8px 32px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.brand-mini {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #7dd3fc;
+  letter-spacing: -0.02em;
+}
+
+.back {
+  color: #7dd3fc;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mute {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.3);
+  background: rgba(30,41,59,0.85);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* —— ONE clock —— */
+.hero {
+  position: relative;
+  border-radius: 24px;
+  padding: 26px 20px 22px;
+  text-align: center;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: box-shadow 0.3s;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transition: background 0.4s ease;
+}
+
+.hero > * { position: relative; z-index: 1; }
+
+.hero.idle::before,
+.hero.done::before {
+  background: linear-gradient(160deg, #1e293b, #334155);
+}
+.hero.reading::before {
+  background: linear-gradient(160deg, #0c4a6e, #0284c7 50%, #0369a1);
+  box-shadow: inset 0 0 80px rgba(56,189,248,0.25);
+}
+.hero.gather::before {
+  background: linear-gradient(160deg, #064e3b, #059669 50%, #047857);
+}
+.hero.diagnosis::before {
+  background: linear-gradient(160deg, #78350f, #d97706 50%, #b45309);
+}
+.hero.manage::before {
+  background: linear-gradient(160deg, #4c1d95, #7c3aed 50%, #6d28d9);
+}
+.hero.safety::before {
+  background: linear-gradient(160deg, #9f1239, #e11d48 50%, #be123c);
+}
+.hero.close::before {
+  background: linear-gradient(160deg, #7f1d1d, #dc2626 50%, #b91c1c);
+}
+
+.hero.gather { box-shadow: 0 12px 40px rgba(5,150,105,0.35); }
+.hero.diagnosis { box-shadow: 0 12px 40px rgba(217,119,6,0.35); }
+.hero.manage { box-shadow: 0 12px 40px rgba(124,58,237,0.35); }
+.hero.safety { box-shadow: 0 12px 40px rgba(225,29,72,0.35); }
+.hero.close { box-shadow: 0 12px 40px rgba(220,38,38,0.4); }
+.hero.reading { box-shadow: 0 12px 40px rgba(2,132,199,0.35); }
+
+.kicker {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.phase-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.phase-pill .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px #fff;
+  animation: pulse 1.4s ease infinite;
+}
+
+@keyframes pulse { 50% { opacity: 0.5; transform: scale(0.85); } }
+
+.clock {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(72px, 22vw, 96px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-shadow: 0 6px 30px rgba(0,0,0,0.3);
+}
+
+.clock.danger {
+  color: #fecaca;
+  animation: blink 0.85s ease infinite;
+}
+
+@keyframes blink { 50% { opacity: 0.6; } }
+
+.sub {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.final {
+  display: none;
+  margin-top: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 42px;
+  font-weight: 700;
+  color: #fecaca;
+  animation: blink 0.8s ease infinite;
+}
+
+.final.visible { display: block; }
+
+/* Track + phase chips share exact time ratios (minutes):
+   Reading 3 · Data 6 · Dx 1 · Manage 3 · Safety 1 · Close 1  = 15 */
+.track-card {
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.track-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.ratio-row {
+  display: flex;
+  width: 100%;
+  gap: 0;
+}
+
+.ratio-row > [data-phase="reading"] { flex: 3 1 0; min-width: 0; }
+.ratio-row > [data-phase="gather"] { flex: 6 1 0; min-width: 0; }
+.ratio-row > [data-phase="diagnosis"] { flex: 1 1 0; min-width: 0; }
+.ratio-row > [data-phase="manage"] { flex: 3 1 0; min-width: 0; }
+.ratio-row > [data-phase="safety"] { flex: 1 1 0; min-width: 0; }
+.ratio-row > [data-phase="close"] { flex: 1 1 0; min-width: 0; }
+
+.lane {
+  position: relative;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #0f172a;
+  border: 2px solid rgba(148,163,184,0.2);
+}
+
+.lane .ratio-row { height: 100%; }
+
+.seg {
+  height: 100%;
+  opacity: 0.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 2px;
+  transition: opacity 0.25s, filter 0.25s;
+}
+
+.seg.reading { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+.seg.gather { background: linear-gradient(90deg, #059669, #34d399); }
+.seg.diagnosis { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.seg.manage { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.seg.safety { background: linear-gradient(90deg, #e11d48, #fb7185); }
+.seg.close { background: linear-gradient(90deg, #dc2626, #f87171); }
+
+.seg.past { opacity: 0.55; }
+.seg.current { opacity: 1; filter: brightness(1.15); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5); }
+.seg.future { opacity: 0.25; }
+
+.runner {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #0f172a;
+  box-shadow: 0 0 0 3px #34d399, 0 0 18px rgba(52,211,153,0.9);
+  z-index: 4;
+  transition: left 0.2s linear;
+  pointer-events: none;
+}
+
+.phases {
+  margin-top: 10px;
+  gap: 4px;
+}
+
+.chip {
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  background: rgba(15,23,42,0.95);
+  border: 1px solid rgba(148,163,184,0.18);
+}
+
+.chip .t {
+  display: block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.chip .w {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.chip.reading .t { color: var(--reading); }
+.chip.gather .t { color: var(--gather); }
+.chip.diagnosis .t { color: var(--diagnosis); }
+.chip.manage .t { color: var(--manage); }
+.chip.safety .t { color: var(--safety); }
+.chip.close .t { color: var(--close); }
+
+.chip.on {
+  border-color: rgba(255,255,255,0.4);
+  box-shadow: 0 0 20px rgba(255,255,255,0.08);
+}
+.chip.reading.on { background: rgba(2,132,199,0.28); }
+.chip.gather.on { background: rgba(5,150,105,0.28); }
+.chip.diagnosis.on { background: rgba(217,119,6,0.28); }
+.chip.manage.on { background: rgba(124,58,237,0.28); }
+.chip.safety.on { background: rgba(225,29,72,0.28); }
+.chip.close.on { background: rgba(220,38,38,0.28); }
+.chip.done { opacity: 0.4; }
+
+.scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.now {
+  position: relative;
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(148,163,184,0.25);
+  background: rgba(30,41,59,0.95);
+  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+}
+
+.now::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #64748b;
+  transition: background 0.3s;
+}
+
+.now > * { position: relative; z-index: 1; }
+
+.now .k {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  margin-bottom: 2px;
+}
+
+.now .k::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.now .a {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #f8fafc;
+}
+
+.now .n {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(226,232,240,0.75);
+}
+
+.now .n strong { color: #f8fafc; }
+
+.now.idle { border-color: rgba(148,163,184,0.3); }
+.now.idle::before { background: #64748b; }
+.now.idle .k { color: #cbd5e1; }
+
+.now.reading {
+  background: linear-gradient(135deg, rgba(12,74,110,0.95), rgba(2,132,199,0.55));
+  border-color: #38bdf8;
+  box-shadow: 0 10px 28px rgba(2,132,199,0.3);
+}
+.now.reading::before { background: #38bdf8; }
+.now.reading .k { color: #e0f2fe; background: rgba(56,189,248,0.25); }
+
+.now.gather {
+  background: linear-gradient(135deg, rgba(6,78,59,0.95), rgba(5,150,105,0.55));
+  border-color: #34d399;
+  box-shadow: 0 10px 28px rgba(5,150,105,0.3);
+}
+.now.gather::before { background: #34d399; }
+.now.gather .k { color: #d1fae5; background: rgba(52,211,153,0.25); }
+
+.now.diagnosis {
+  background: linear-gradient(135deg, rgba(120,53,15,0.95), rgba(217,119,6,0.55));
+  border-color: #fbbf24;
+  box-shadow: 0 10px 28px rgba(217,119,6,0.3);
+}
+.now.diagnosis::before { background: #fbbf24; }
+.now.diagnosis .k { color: #fef3c7; background: rgba(251,191,36,0.25); }
+
+.now.manage {
+  background: linear-gradient(135deg, rgba(76,29,149,0.95), rgba(124,58,237,0.55));
+  border-color: #a78bfa;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.3);
+}
+.now.manage::before { background: #a78bfa; }
+.now.manage .k { color: #ede9fe; background: rgba(167,139,250,0.25); }
+
+.now.safety {
+  background: linear-gradient(135deg, rgba(159,18,57,0.95), rgba(225,29,72,0.55));
+  border-color: #fb7185;
+  box-shadow: 0 10px 28px rgba(225,29,72,0.3);
+}
+.now.safety::before { background: #fb7185; }
+.now.safety .k { color: #ffe4e6; background: rgba(251,113,133,0.25); }
+
+.now.close {
+  background: linear-gradient(135deg, rgba(127,29,29,0.95), rgba(220,38,38,0.55));
+  border-color: #f87171;
+  box-shadow: 0 10px 28px rgba(220,38,38,0.35);
+}
+.now.close::before { background: #f87171; }
+.now.close .k { color: #fee2e2; background: rgba(248,113,113,0.25); }
+
+.now.done {
+  background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(51,65,85,0.8));
+  border-color: #94a3b8;
+}
+.now.done::before { background: #94a3b8; }
+
+.toast {
+  display: none;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  background: linear-gradient(90deg, #9f1239, #e11d48);
+}
+
+.toast.visible { display: block; }
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-go {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg, #059669, #10b981);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(16,185,129,0.35);
+}
+.btn-sec {
+  background: rgba(51,65,85,0.95);
+  color: #e2e8f0;
+  border: 1px solid rgba(148,163,184,0.25);
+}
+.btn-ghost {
+  grid-column: 1 / -1;
+  background: transparent;
+  border: 1px dashed rgba(148,163,184,0.35);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 11px;
+}
+
+.flash { animation: flash 0.4s ease; }
+.flash-warn { animation: flashWarn 0.5s ease; }
+@keyframes flash { 50% { filter: brightness(1.2); } }
+@keyframes flashWarn { 50% { filter: brightness(1.25); } }
+
+@media (max-width: 400px) {
+  .seg { font-size: 0; }
+  .chip .t { font-size: 9px; }
+  .phase-pill { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span class="brand-mini">SCA Timer</span>
+    <button type="button" class="mute" id="muteBtn">🔔</button>
+  </div>
+
+  <div id="shell">
+    <!-- ONE consultation clock — colour + phase title change over time -->
+    <div class="hero idle" id="hero">
+      <div class="kicker" id="kicker">Consultation time</div>
+      <div class="phase-pill"><span class="dot"></span><span id="phaseTitle">Ready</span></div>
+      <div class="clock" id="clock">0:00</div>
+      <div class="sub" id="sub">Counts up to 12:00</div>
+      <div class="final" id="finalCountdown"></div>
+    </div>
+
+    <div class="track-card">
+      <div class="track-legend">
+        <span>Race track · time ratios</span>
+        <span>15 min total</span>
+      </div>
+
+      <div class="lane" id="lane">
+        <div class="ratio-row">
+          <div class="seg reading" data-phase="reading">Read</div>
+          <div class="seg gather" data-phase="gather">Data</div>
+          <div class="seg diagnosis" data-phase="diagnosis">Dx</div>
+          <div class="seg manage" data-phase="manage">Mx</div>
+          <div class="seg safety" data-phase="safety">Safe</div>
+          <div class="seg close" data-phase="close">Close</div>
+        </div>
+        <div class="runner" id="runner" style="left:0%"></div>
+      </div>
+
+      <div class="ratio-row phases">
+        <div class="chip reading" data-phase="reading"><span class="t">Reading</span><span class="w">3 min</span></div>
+        <div class="chip gather" data-phase="gather"><span class="t">Data</span><span class="w">0–6</span></div>
+        <div class="chip diagnosis" data-phase="diagnosis"><span class="t">Dx</span><span class="w">6–7</span></div>
+        <div class="chip manage" data-phase="manage"><span class="t">Manage</span><span class="w">7–10</span></div>
+        <div class="chip safety" data-phase="safety"><span class="t">Safety</span><span class="w">10–11</span></div>
+        <div class="chip close" data-phase="close"><span class="t">Close</span><span class="w">11–12</span></div>
+      </div>
+
+      <div class="scale">
+        <span>0:00</span>
+        <span>3:00 consult</span>
+        <span>9:00</span>
+        <span>15:00</span>
+      </div>
+    </div>
+
+    <div class="now idle" id="nowBox">
+      <div class="k">Do this now</div>
+      <div class="a" id="nowAction">Press Start when you open your candidate brief</div>
+      <div class="n" id="nowNext">Reading counts <strong>0:00 → 3:00</strong>, then consultation <strong>0:00 → 12:00</strong></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="controls">
+      <button type="button" class="btn btn-go" id="startBtn">Start</button>
+      <button type="button" class="btn btn-sec" id="pauseBtn" disabled>Pause</button>
+      <button type="button" class="btn btn-sec" id="resetBtn" disabled>Reset</button>
+      <button type="button" class="btn btn-ghost" id="skipBtn" disabled>Skip reading → start consultation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const READING_SEC = 180;
+  const CONSULT_SEC = 720;
+  const TOTAL_SEC = READING_SEC + CONSULT_SEC;
+
+  // Phases are relative to CONSULTATION time (0–12), except reading before consult
+  const PHASES = [
+    { id: 'reading', start: 0, end: READING_SEC, label: 'Reading', consult: false,
+      action: 'Read brief · plan differentials · note red flags',
+      next: 'Consultation starts at 0:00 — begin data gathering' },
+    { id: 'gather', start: READING_SEC, end: READING_SEC + 360, label: 'Data gathering', consult: true,
+      action: 'Open consult · history · ICE · exam · differentials',
+      next: 'At 6:00 — state your diagnosis aloud' },
+    { id: 'diagnosis', start: READING_SEC + 360, end: READING_SEC + 420, label: 'Diagnosis', consult: true,
+      action: 'Stop gathering · give working diagnosis out loud',
+      next: 'At 7:00 — move into management' },
+    { id: 'manage', start: READING_SEC + 420, end: READING_SEC + 600, label: 'Management', consult: true,
+      action: 'Address ICE · share plan · prescribe / refer / investigate',
+      next: 'At 10:00 — safety-net and follow-up' },
+    { id: 'safety', start: READING_SEC + 600, end: READING_SEC + 660, label: 'Safety-net', consult: true,
+      action: 'Specific red flags · when to return · follow-up',
+      next: 'At 11:00 — summarise and close' },
+    { id: 'close', start: READING_SEC + 660, end: TOTAL_SEC, label: 'Close', consult: true,
+      action: 'Summarise · check understanding · anything else?',
+      next: 'Consultation ends at 12:00' }
+  ];
+
+  const TRACK_ORDER = ['reading', 'gather', 'diagnosis', 'manage', 'safety', 'close'];
+
+  const ALERTS = [
+    { at: 0, id: 'reading-start', message: 'Reading time' },
+    { at: 150, id: 'reading-30', message: '30 seconds of reading left' },
+    { at: READING_SEC, id: 'consult-start', message: 'Consultation started — 0:00' },
+    { at: READING_SEC + 360, id: 'diagnosis', message: 'Diagnosis — state it aloud' },
+    { at: READING_SEC + 420, id: 'management', message: 'Management' },
+    { at: READING_SEC + 600, id: 'safety-net', message: 'Safety-net' },
+    { at: READING_SEC + 660, id: 'one-minute', message: 'Close — 1 minute left', warn: true },
+    { at: TOTAL_SEC - 5, id: 'countdown-5', message: '5', warn: true, quiet: true },
+    { at: TOTAL_SEC - 4, id: 'countdown-4', message: '4', warn: true, quiet: true },
+    { at: TOTAL_SEC - 3, id: 'countdown-3', message: '3', warn: true, quiet: true },
+    { at: TOTAL_SEC - 2, id: 'countdown-2', message: '2', warn: true, quiet: true },
+    { at: TOTAL_SEC - 1, id: 'countdown-1', message: '1', warn: true, quiet: true },
+    { at: TOTAL_SEC, id: 'end', message: 'Consultation complete', warn: true }
+  ];
+
+  const els = {
+    shell: document.getElementById('shell'),
+    hero: document.getElementById('hero'),
+    kicker: document.getElementById('kicker'),
+    phaseTitle: document.getElementById('phaseTitle'),
+    clock: document.getElementById('clock'),
+    sub: document.getElementById('sub'),
+    finalCountdown: document.getElementById('finalCountdown'),
+    runner: document.getElementById('runner'),
+    nowBox: document.getElementById('nowBox'),
+    nowAction: document.getElementById('nowAction'),
+    nowNext: document.getElementById('nowNext'),
+    toast: document.getElementById('toast'),
+    startBtn: document.getElementById('startBtn'),
+    pauseBtn: document.getElementById('pauseBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    skipBtn: document.getElementById('skipBtn'),
+    muteBtn: document.getElementById('muteBtn')
+  };
+
+  let state = 'idle';
+  let elapsed = 0;
+  let lastTick = 0;
+  let rafId = null;
+  let wakeLock = null;
+  let fired = new Set();
+  let muted = localStorage.getItem('sca-timer-muted') === '1';
+  let audioCtx = null;
+  let prevElapsed = -1;
+  let toastTimer = null;
+  let soundBusyUntil = 0;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function fmt(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    return Math.floor(s / 60) + ':' + pad(s % 60);
+  }
+
+  function phaseAt() {
+    if (elapsed >= TOTAL_SEC) return null;
+    for (let i = PHASES.length - 1; i >= 0; i--) {
+      if (elapsed >= PHASES[i].start) return PHASES[i];
+    }
+    return PHASES[0];
+  }
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) audioCtx = new Ctx();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function note(freq, start, dur, vol, type) {
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.exponentialRampToValueAtTime(vol, start + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(start); o.stop(start + dur + 0.03);
+  }
+
+  function sound(id) {
+    if (muted || !audioCtx) return;
+    if (id && String(id).indexOf('countdown-') === 0) {
+      // Soft tick only for final 5–1
+      const t = audioCtx.currentTime;
+      note(990, t, 0.07, 0.09, 'triangle');
+      return;
+    }
+    // One shared transition chime for every phase change
+    const t = audioCtx.currentTime;
+    if (t < soundBusyUntil) return;
+    soundBusyUntil = t + 0.4;
+    note(523.25, t, 0.12, 0.1);
+    note(659.25, t + 0.13, 0.18, 0.11);
+  }
+
+  function flash(warn) {
+    els.shell.classList.remove('flash', 'flash-warn');
+    void els.shell.offsetWidth;
+    els.shell.classList.add(warn ? 'flash-warn' : 'flash');
+  }
+
+  function showToast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.remove('visible'), 3500);
+  }
+
+  function render() {
+    const done = state !== 'idle' && elapsed >= TOTAL_SEC;
+    const phase = done ? null : (state === 'idle' ? null : phaseAt());
+    const phaseId = state === 'idle' ? 'idle' : (done ? 'done' : phase.id);
+    const inReading = phaseId === 'reading';
+
+    // ONE clock: count UP — reading 0→3:00, then consultation 0→12:00
+    let displaySec = 0;
+    if (done) {
+      displaySec = CONSULT_SEC;
+    } else if (state === 'idle') {
+      displaySec = 0;
+    } else if (inReading) {
+      displaySec = Math.min(READING_SEC, Math.max(0, elapsed));
+    } else {
+      displaySec = Math.min(CONSULT_SEC, Math.max(0, elapsed - READING_SEC));
+    }
+
+    els.clock.textContent = done ? '12:00' : fmt(displaySec);
+    els.clock.classList.toggle('danger', phaseId === 'close' && displaySec >= 660);
+
+    els.hero.className = 'hero ' + phaseId;
+    els.phaseTitle.textContent = state === 'idle' ? 'Ready' : (done ? 'Complete' : phase.label);
+    els.nowBox.className = 'now ' + phaseId;
+
+    if (state === 'idle') {
+      els.kicker.textContent = 'Consultation time';
+      els.sub.textContent = 'Counts up to 12:00 · colour changes with each phase';
+      els.nowAction.textContent = 'Press Start when you open your candidate brief';
+      els.nowNext.innerHTML = 'Reading counts <strong>0:00 → 3:00</strong>, then consultation <strong>0:00 → 12:00</strong>';
+    } else if (done) {
+      els.kicker.textContent = 'Consultation finished';
+      els.sub.textContent = 'Ended at 12:00';
+      els.nowAction.textContent = 'Consultation complete';
+      els.nowNext.innerHTML = 'All phases done';
+    } else if (inReading) {
+      els.kicker.textContent = 'Reading time';
+      els.sub.textContent = 'Counting up · ends at 3:00 · then consultation starts';
+      els.nowAction.textContent = phase.action;
+      els.nowNext.innerHTML = 'Next: <strong>' + phase.next + '</strong>';
+    } else {
+      els.kicker.textContent = 'Consultation time';
+      els.sub.textContent = 'Counting up · ends at 12:00 · now in ' + phase.label;
+      els.nowAction.textContent = phase.action;
+      els.nowNext.innerHTML = 'Next: <strong>' + phase.next + '</strong>';
+    }
+
+    // Runner across full 15-min track (ratios match segment widths)
+    const trackPct = state === 'idle' ? 0 : Math.min(100, (Math.min(TOTAL_SEC, elapsed) / TOTAL_SEC) * 100);
+    els.runner.style.left = trackPct + '%';
+
+    const idx = TRACK_ORDER.indexOf(phaseId);
+    document.querySelectorAll('.seg, .chip').forEach((el) => {
+      const pi = TRACK_ORDER.indexOf(el.dataset.phase);
+      const isSeg = el.classList.contains('seg');
+      el.classList.remove('past', 'current', 'future', 'on', 'done');
+      if (state === 'idle') {
+        if (isSeg) el.classList.add('future');
+      } else if (done) {
+        el.classList.add(isSeg ? 'past' : 'done');
+      } else if (pi < idx) {
+        el.classList.add(isSeg ? 'past' : 'done');
+      } else if (pi === idx) {
+        el.classList.add(isSeg ? 'current' : 'on');
+      } else if (isSeg) {
+        el.classList.add('future');
+      }
+    });
+
+    // Visual-only final countdown (sounds fired once via checkAlerts edges)
+    if (elapsed >= TOTAL_SEC - 5 && elapsed < TOTAL_SEC) {
+      const left = Math.ceil(TOTAL_SEC - elapsed);
+      els.finalCountdown.textContent = left <= 5 ? String(left) : '';
+      els.finalCountdown.classList.toggle('visible', left <= 5 && left > 0);
+    } else {
+      els.finalCountdown.classList.remove('visible');
+      els.finalCountdown.textContent = '';
+    }
+  }
+
+  function fire(a) {
+    if (fired.has(a.id)) return;
+    fired.add(a.id);
+    if (!a.quiet) flash(!!a.warn);
+    sound(a.id);
+    if (!a.quiet) showToast(a.message);
+  }
+
+  // Fire ONLY when crossing a threshold (once per transition)
+  function checkAlerts() {
+    for (let i = 0; i < ALERTS.length; i++) {
+      const a = ALERTS[i];
+      if (prevElapsed < a.at && elapsed >= a.at) fire(a);
+    }
+    prevElapsed = elapsed;
+  }
+
+  function loop(now) {
+    if (state !== 'running') return;
+    elapsed += (now - lastTick) / 1000;
+    lastTick = now;
+    if (elapsed >= TOTAL_SEC) {
+      elapsed = TOTAL_SEC;
+      checkAlerts();
+      render();
+      state = 'done';
+      cancelAnimationFrame(rafId);
+      releaseWakeLock();
+      setControls();
+      return;
+    }
+    checkAlerts();
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function setControls() {
+    const running = state === 'running';
+    els.startBtn.textContent = running ? 'Running…' : (state === 'paused' ? 'Resume' : state === 'done' ? 'Start again' : 'Start');
+    els.startBtn.disabled = running;
+    els.pauseBtn.disabled = !running;
+    els.resetBtn.disabled = state === 'idle';
+    els.skipBtn.disabled = state === 'idle' || elapsed >= READING_SEC;
+  }
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (_) {}
+  }
+
+  async function releaseWakeLock() {
+    if (wakeLock) { try { await wakeLock.release(); } catch (_) {} wakeLock = null; }
+  }
+
+  function start() {
+    ensureAudio();
+    if (state === 'paused') {
+      state = 'running';
+      lastTick = performance.now();
+      requestWakeLock();
+      rafId = requestAnimationFrame(loop);
+    } else {
+      elapsed = 0;
+      prevElapsed = -1;
+      fired.clear();
+      soundBusyUntil = 0;
+      state = 'running';
+      lastTick = performance.now();
+      els.toast.classList.remove('visible');
+      requestWakeLock();
+      checkAlerts();
+      render();
+      rafId = requestAnimationFrame(loop);
+    }
+    setControls();
+  }
+
+  function pause() {
+    if (state !== 'running') return;
+    state = 'paused';
+    cancelAnimationFrame(rafId);
+    releaseWakeLock();
+    setControls();
+  }
+
+  function reset() {
+    cancelAnimationFrame(rafId);
+    releaseWakeLock();
+    state = 'idle';
+    elapsed = 0;
+    prevElapsed = -1;
+    fired.clear();
+    soundBusyUntil = 0;
+    els.toast.classList.remove('visible');
+    els.finalCountdown.classList.remove('visible');
+    render();
+    setControls();
+  }
+
+  function skipReading() {
+    if (state === 'idle') return;
+    ensureAudio();
+    // Jump to consult start; mark earlier alerts as already handled
+    prevElapsed = READING_SEC - 0.001;
+    elapsed = READING_SEC;
+    ALERTS.filter((a) => a.at < READING_SEC).forEach((a) => fired.add(a.id));
+    checkAlerts(); // crosses consult-start exactly once
+    if (state === 'paused') {
+      state = 'running';
+      lastTick = performance.now();
+      rafId = requestAnimationFrame(loop);
+    }
+    render();
+    setControls();
+  }
+
+  els.startBtn.addEventListener('click', () => { if (state === 'done') reset(); start(); });
+  els.pauseBtn.addEventListener('click', pause);
+  els.resetBtn.addEventListener('click', reset);
+  els.skipBtn.addEventListener('click', skipReading);
+  els.muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    localStorage.setItem('sca-timer-muted', muted ? '1' : '0');
+    els.muteBtn.textContent = muted ? '🔕' : '🔔';
+    if (!muted) { ensureAudio(); sound('reading-30'); }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state === 'running') requestWakeLock();
+  });
+
+  els.muteBtn.textContent = muted ? '🔕' : '🔔';
+  render();
+  setControls();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>

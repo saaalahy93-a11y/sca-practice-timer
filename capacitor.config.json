@@ -1,0 +1,17 @@
+{
+  "appId": "uk.sca.practicetimer",
+  "appName": "SCA Timer",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#0b1220"
+    }
+  }
+}

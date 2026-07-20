@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>FullScreen</key>
+      <true/>
+      <key>Icon</key>
+      <data>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</data>
+      <key>IsRemovable</key>
+      <true/>
+      <key>Label</key>
+      <string>SCA Timer</string>
+      <key>PayloadDescription</key>
+      <string>Adds SCA Practice Timer to your Home Screen</string>
+      <key>PayloadDisplayName</key>
+      <string>SCA Timer</string>
+      <key>PayloadIdentifier</key>
+      <string>uk.sca.practicetimer.webclip</string>
+      <key>PayloadType</key>
+      <string>com.apple.webClip.managed</string>
+      <key>PayloadUUID</key>
+      <string>78390B45-57D2-4D81-9E20-B0CE72061F3A</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>Precomposed</key>
+      <true/>
+      <key>URL</key>
+      <string>https://sca-practice-timer.vercel.app</string>
+    </dict>
+  </array>
+  <key>PayloadDescription</key>
+  <string>Install SCA Practice Timer on your iPhone Home Screen without the App Store or Xcode.</string>
+  <key>PayloadDisplayName</key>
+  <string>SCA Timer</string>
+  <key>PayloadIdentifier</key>
+  <string>uk.sca.practicetimer.profile</string>
+  <key>PayloadOrganization</key>
+  <string>SCA Practice</string>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>EA4DE524-75B2-4F67-9516-93260767A834</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+</dict>
+</plist>

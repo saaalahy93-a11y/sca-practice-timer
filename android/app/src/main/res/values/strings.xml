@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SCA Timer</string>
+    <string name="title_activity_main">SCA Timer</string>
+    <string name="package_name">uk.sca.practicetimer</string>
+    <string name="custom_url_scheme">uk.sca.practicetimer</string>
+</resources>
