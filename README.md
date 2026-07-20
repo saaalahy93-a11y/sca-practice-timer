@@ -22,6 +22,14 @@ Open **http://localhost:4173** on your phone (same Wi‑Fi) or laptop.
 
 Friends open that URL on any phone. On iPhone: Safari → Share → Add to Home Screen.
 
+## iPhone install (no Xcode, no App Store)
+
+**https://sca-practice-timer.vercel.app/ios-install.html**
+
+Or open `SCA_Timer_iOS.mobileconfig` (also in `output/`). Safari → install profile → Home Screen app icon.
+
+Cloud IPA/simulator build (GitHub Actions, no local Xcode): repo `saaalahy93-a11y/sca-practice-timer` → Actions → **iOS Cloud Build**.
+
 ## Share with friends (easiest)
 
 ### Option A — Send the folder / zip
